@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Security Events - Rogue Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-exclamation-triangle"></i> Security Events</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Event Log</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Type</th>
+                                <th>Severity</th>
+                                <th>MAC Address</th>
+                                <th>IP Address</th>
+                                <th>Port</th>
+                                <th>Description</th>
+                                <th>Action Taken</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in events %}
+                            <tr>
+                                <td>{{ event.timestamp|datetime }}</td>
+                                <td><span class="badge bg-info">{{ event.event_type }}</span></td>
+                                <td>
+                                    <span class="badge bg-{{ event.severity|severity_color }}">
+                                        {{ event.severity }}
+                                    </span>
+                                </td>
+                                <td><code>{{ event.mac_address or '-' }}</code></td>
+                                <td>{{ event.ip_address or '-' }}</td>
+                                <td>
+                                    {% if event.switch_port %}
+                                        <span class="badge bg-primary">{{ event.switch_port }}</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>{{ event.description }}</td>
+                                <td>{{ event.action_taken or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

@@ -1,0 +1,160 @@
+/* Custom styles for Rogue Detection System */
+
+:root {
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --danger-color: #dc3545;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.navbar-dark {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    font-weight: 600;
+    border-bottom: 2px solid rgba(0,0,0,0.05);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(102, 126, 234, 0.05);
+}
+
+.badge {
+    padding: 0.4em 0.6em;
+    font-weight: 500;
+}
+
+code {
+    background-color: #f4f4f4;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    color: #d63384;
+}
+
+.footer {
+    background-color: white;
+    border-top: 1px solid #dee2e6;
+    margin-top: auto;
+}
+
+/* Statistics cards */
+.card-body h2 {
+    font-weight: 700;
+    margin-top: 10px;
+}
+
+/* Alerts */
+.alert {
+    border-left: 4px solid;
+}
+
+.alert-danger {
+    border-left-color: var(--danger-color);
+}
+
+.alert-success {
+    border-left-color: var(--success-color);
+}
+
+.alert-warning {
+    border-left-color: var(--warning-color);
+}
+
+/* Tables */
+.table-responsive {
+    border-radius: 8px;
+}
+
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.btn-sm {
+    font-size: 0.8rem;
+}
+
+/* Navbar enhancements */
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.3rem;
+}
+
+.nav-link {
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.nav-link:hover {
+    transform: translateY(-2px);
+}
+
+/* Modal enhancements */
+.modal-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+}
+
+/* Loading spinner */
+.spinner-border {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .card-body h2 {
+        font-size: 1.5rem;
+    }
+    
+    .table {
+        font-size: 0.85rem;
+    }
+}
+

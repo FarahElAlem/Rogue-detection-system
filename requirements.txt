@@ -1,0 +1,82 @@
+# ============================================
+# Rogue Detection System - Requirements
+# ============================================
+# Python 3.8+ required
+# Last updated: October 2025
+# ============================================
+
+# Web Framework
+flask==3.0.0
+flask-cors==4.0.0
+flask-socketio==5.3.5
+python-socketio==5.10.0
+Werkzeug==3.0.1
+
+# Network & SSH
+netmiko==4.3.0
+paramiko==3.4.0
+scp==0.14.5
+
+# Task Scheduling
+apscheduler==3.10.4
+
+# Data Processing
+pandas==2.1.4
+
+# Terminal UI (for CLI tools)
+rich==13.7.0
+
+# Email Support
+secure-smtplib==0.1.1
+
+# Database (SQLite is built-in to Python)
+# No additional packages needed
+
+# Security
+cryptography==41.0.7
+bcrypt==4.1.2
+
+# HTTP Requests (for testing)
+requests==2.31.0
+
+# Configuration
+python-dotenv==1.0.0
+
+# Logging
+colorlog==6.8.0
+
+# ============================================
+# Development Dependencies (Optional)
+# ============================================
+# Uncomment if you need these for development
+
+# pytest==7.4.3
+# pytest-cov==4.1.0
+# black==23.12.1
+# flake8==6.1.0
+# pylint==3.0.3
+
+# ============================================
+# Platform-Specific Notes
+# ============================================
+# Linux: sudo apt install python3-pip python3-venv
+# Windows: Download Python from python.org
+# macOS: brew install python3
+# Google Cloud: Use Cloud Shell (Python pre-installed)
+
+# ============================================
+# Installation Instructions
+# ============================================
+# 1. Create virtual environment:
+#    python3 -m venv venv
+#
+# 2. Activate virtual environment:
+#    Linux/macOS: source venv/bin/activate
+#    Windows: venv\Scripts\activate
+#
+# 3. Install dependencies:
+#    pip install -r requirements.txt
+#
+# 4. Verify installation:
+#    pip list
+# ============================================

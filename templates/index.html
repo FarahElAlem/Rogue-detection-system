@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Rogue Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+        <hr>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Active on Network</h5>
+                <h2 class="card-text" id="active-devices">{{ stats.active_devices }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Authorized</h5>
+                <h2 class="card-text" id="authorized-devices">{{ stats.authorized_devices }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title">⚠️ Active Rogues</h5>
+                <h2 class="card-text" id="active-rogues">{{ stats.active_rogues }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Quarantined</h5>
+                <h2 class="card-text" id="quarantined-devices">{{ stats.quarantined_devices or 0 }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Today's Events</h5>
+                <h2 class="card-text" id="today-events">{{ stats.today_events }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-white bg-secondary">
+            <div class="card-body">
+                <h5 class="card-title">Critical Events</h5>
+                <h2 class="card-text" id="critical-events">{{ stats.today_critical_events or 0 }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Rogue Devices -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Recent Rogue Devices</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>MAC Address</th>
+                                <th>IP Address</th>
+                                <th>Last Seen</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rogue-devices-list">
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Events -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Recent Events</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Event</th>
+                                <th>Severity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-events-list">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function loadRogueDevices() {
+        fetch('/api/devices/rogues')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('rogue-devices-list');
+            if (data.success && data.devices && data.devices.length > 0) {
+                tbody.innerHTML = data.devices.slice(0, 5).map(device => `
+                    <tr>
+                        <td><code>${device.mac_address}</code></td>
+                        <td>${device.ip_address || 'Unknown'}</td>
+                        <td>${new Date(device.last_seen).toLocaleString()}</td>
+                        <td><span class="badge bg-${device.status === 'quarantined' ? 'warning' : 'danger'}">${device.status}</span></td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-success">No rogue devices detected</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Failed to load rogue devices:', error);
+        });
+    }
+    
+    function loadRecentEvents() {
+        fetch('/api/events?limit=5')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('recent-events-list');
+            if (data.success && data.events && data.events.length > 0) {
+                tbody.innerHTML = data.events.map(event => `
+                    <tr>
+                        <td>${new Date(event.timestamp).toLocaleTimeString()}</td>
+                        <td>${event.description}</td>
+                        <td><span class="badge bg-${event.severity === 'CRITICAL' ? 'danger' : event.severity === 'HIGH' ? 'warning' : 'info'}">${event.severity}</span></td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No recent events</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Failed to load events:', error);
+        });
+    }
+    
+    function updateStats() {
+        fetch('/api/statistics')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const stats = data.statistics;
+                document.getElementById('active-devices').textContent = stats.active_devices || stats.total_devices || 0;
+                document.getElementById('authorized-devices').textContent = stats.authorized_devices || 0;
+                document.getElementById('active-rogues').textContent = stats.active_rogues || stats.rogue_devices || 0;
+                document.getElementById('quarantined-devices').textContent = stats.quarantined_devices || 0;
+                document.getElementById('today-events').textContent = stats.today_events || 0;
+                document.getElementById('critical-events').textContent = stats.today_critical_events || 0;
+            }
+        })
+        .catch(error => {
+            console.error('Failed to refresh statistics:', error);
+        });
+    }
+    
+    // Load data on page load
+    loadRogueDevices();
+    loadRecentEvents();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        updateStats();
+        loadRogueDevices();
+        loadRecentEvents();
+    }, 30000);
+</script>
+{% endblock %}

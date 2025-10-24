@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Import/Export - Rogue Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-exchange-alt"></i> Import / Export Devices</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Import Section -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-file-import"></i> Import Devices</h5>
+            </div>
+            <div class="card-body">
+                <p>Import authorized devices from JSON format.</p>
+                
+                <div class="mb-3">
+                    <label for="importJson" class="form-label">Paste JSON Data:</label>
+                    <textarea class="form-control font-monospace" id="importJson" rows="10" placeholder='[
+  {
+    "mac_address": "AA:BB:CC:DD:EE:FF",
+    "device_name": "Device Name",
+    "device_type": "Computer",
+    "owner": "Owner Name",
+    "department": "IT",
+    "notes": "Optional notes"
+  }
+]'></textarea>
+                </div>
+                
+                <button class="btn btn-primary" onclick="importDevices()">
+                    <i class="fas fa-upload"></i> Import Devices
+                </button>
+                
+                <hr>
+                
+                <h6>Or Initialize Default Devices:</h6>
+                <p class="text-muted small">This will add VPC1 and VPC2 as authorized devices.</p>
+                <button class="btn btn-secondary" onclick="initializeDefaults()">
+                    <i class="fas fa-plus-circle"></i> Initialize Defaults
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export Section -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-file-export"></i> Export Devices</h5>
+            </div>
+            <div class="card-body">
+                <p>Export all authorized devices to JSON format for backup.</p>
+                
+                <button class="btn btn-success mb-3" onclick="exportDevices()">
+                    <i class="fas fa-download"></i> Export Authorized Devices
+                </button>
+                
+                <div class="mb-3">
+                    <label for="exportJson" class="form-label">Exported Data:</label>
+                    <textarea class="form-control font-monospace" id="exportJson" rows="10" readonly></textarea>
+                </div>
+                
+                <button class="btn btn-outline-secondary btn-sm" onclick="copyExport()">
+                    <i class="fas fa-copy"></i> Copy to Clipboard
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="downloadExport()">
+                    <i class="fas fa-download"></i> Download as File
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Results -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div id="importResults"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function importDevices() {
+    const jsonData = document.getElementById('importJson').value;
+    
+    if (!jsonData.trim()) {
+        alert('Please paste JSON data first');
+        return;
+    }
+    
+    try {
+        const devices = JSON.parse(jsonData);
+        
+        if (!Array.isArray(devices)) {
+            alert('JSON must be an array of devices');
+            return;
+        }
+        
+        fetch('/api/devices/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ devices: devices })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showResult('success', `Successfully imported ${data.count} devices`);
+                document.getElementById('importJson').value = '';
+            } else {
+                showResult('danger', 'Import failed: ' + data.message);
+            }
+        })
+        .catch(error => {
+            showResult('danger', 'Error: ' + error);
+        });
+        
+    } catch (e) {
+        alert('Invalid JSON format: ' + e.message);
+    }
+}
+
+function exportDevices() {
+    fetch('/api/devices/export')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const json = JSON.stringify(data.devices, null, 2);
+                document.getElementById('exportJson').value = json;
+                showResult('success', `Exported ${data.count} devices`);
+            } else {
+                showResult('danger', 'Export failed');
+            }
+        })
+        .catch(error => {
+            showResult('danger', 'Error: ' + error);
+        });
+}
+
+function initializeDefaults() {
+    if (!confirm('Initialize database with default devices (VPC1, VPC2)?')) return;
+    
+    fetch('/api/database/initialize', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult('success', data.message);
+        } else {
+            showResult('danger', 'Initialization failed');
+        }
+    });
+}
+
+function copyExport() {
+    const exportData = document.getElementById('exportJson');
+    exportData.select();
+    document.execCommand('copy');
+    showResult('info', 'Copied to clipboard');
+}
+
+function downloadExport() {
+    const exportData = document.getElementById('exportJson').value;
+    
+    if (!exportData) {
+        alert('Please export data first');
+        return;
+    }
+    
+    const blob = new Blob([exportData], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'authorized_devices_' + new Date().toISOString().split('T')[0] + '.json';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    showResult('success', 'Downloaded export file');
+}
+
+function showResult(type, message) {
+    const container = document.getElementById('importResults');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    container.innerHTML = '';
+    container.appendChild(alert);
+    
+    setTimeout(() => alert.remove(), 5000);
+}
+</script>
+{% endblock %}
+

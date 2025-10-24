@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}Device Management - Rogue Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-network-wired"></i> Device Management</h2>
+        <p class="text-muted">View and manage all detected devices on the network</p>
+        <hr>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<ul class="nav nav-tabs mb-3" id="deviceTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button">
+            All Devices <span class="badge bg-primary" id="all-count">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="authorized-tab" data-bs-toggle="tab" data-bs-target="#authorized" type="button">
+            Authorized <span class="badge bg-success" id="authorized-count">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="rogues-tab" data-bs-toggle="tab" data-bs-target="#rogues" type="button">
+            Rogues <span class="badge bg-danger" id="rogues-count">0</span>
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="deviceTabsContent">
+    <!-- All Devices Tab -->
+    <div class="tab-pane fade show active" id="all" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-list"></i> All Devices</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="allDevicesTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>MAC Address</th>
+                                <th>IP Address</th>
+                                <th>Vendor</th>
+                                <th>Port</th>
+                                <th>VLAN</th>
+                                <th>Status</th>
+                                <th>Type</th>
+                                <th>Last Seen</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allDevicesList">
+                            <tr>
+                                <td colspan="9" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authorized Devices Tab -->
+    <div class="tab-pane fade" id="authorized" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-check-circle"></i> Authorized Devices</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>MAC Address</th>
+                                <th>IP Address</th>
+                                <th>Vendor</th>
+                                <th>Port</th>
+                                <th>VLAN</th>
+                                <th>Last Seen</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="authorizedDevicesList">
+                            <tr>
+                                <td colspan="7" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rogue Devices Tab -->
+    <div class="tab-pane fade" id="rogues" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Rogue Devices</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>MAC Address</th>
+                                <th>IP Address</th>
+                                <th>Vendor</th>
+                                <th>Port</th>
+                                <th>VLAN</th>
+                                <th>Status</th>
+                                <th>Last Seen</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rogueDevicesList">
+                            <tr>
+                                <td colspan="8" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let allDevices = [];
+
+function loadDevices() {
+    fetch('/api/devices')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                allDevices = data.devices;
+                updateCounts();
+                renderAllDevices();
+                renderAuthorizedDevices();
+                renderRogueDevices();
+            }
+        })
+        .catch(error => console.error('Error loading devices:', error));
+}
+
+function updateCounts() {
+    // Filter out multicast and broadcast addresses for accurate counts
+    const realDevices = allDevices.filter(d => 
+        !d.mac_address.startsWith('01:00:5E:') && 
+        !d.mac_address.startsWith('33:33:') && 
+        d.mac_address !== 'FF:FF:FF:FF:FF:FF'
+    );
+    
+    const authorizedCount = realDevices.filter(d => d.is_authorized == 1).length;
+    const roguesCount = realDevices.filter(d => d.is_rogue == 1).length;
+    
+    document.getElementById('all-count').textContent = realDevices.length;
+    document.getElementById('authorized-count').textContent = authorizedCount;
+    document.getElementById('rogues-count').textContent = roguesCount;
+}
+
+function renderAllDevices() {
+    const tbody = document.getElementById('allDevicesList');
+    
+    // Filter out multicast and broadcast addresses
+    const realDevices = allDevices.filter(d => 
+        !d.mac_address.startsWith('01:00:5E:') && 
+        !d.mac_address.startsWith('33:33:') && 
+        d.mac_address !== 'FF:FF:FF:FF:FF:FF'
+    );
+    
+    if (realDevices.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No devices found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = realDevices.map(device => {
+        const statusBadge = device.status === 'active' ? 
+            '<span class="badge bg-success">Active</span>' : 
+            device.status === 'quarantined' ?
+            '<span class="badge bg-warning">Quarantined</span>' :
+            '<span class="badge bg-secondary">Inactive</span>';
+        
+        const typeBadge = device.is_authorized == 1 ? 
+            '<span class="badge bg-success">Authorized</span>' : 
+            '<span class="badge bg-danger">Rogue</span>';
+
+        // Determine actions based on device status
+        let actions = '';
+        if (device.is_authorized == 1) {
+            // Authorized device - only show revoke
+            actions = `<button class="btn btn-sm btn-warning" onclick="revokeDevice('${device.mac_address}')"><i class="fas fa-ban"></i> Revoke</button>`;
+        } else if (device.status === 'quarantined') {
+            // Quarantined rogue - show authorize and restore
+            actions = `<button class="btn btn-sm btn-success" onclick="authorizeDevice('${device.mac_address}')"><i class="fas fa-check"></i> Authorize</button>
+                       <button class="btn btn-sm btn-info" onclick="restoreDevice('${device.mac_address}')"><i class="fas fa-undo"></i> Restore</button>`;
+        } else {
+            // Active rogue - show quarantine, authorize, and shutdown
+            actions = `<button class="btn btn-sm btn-warning" onclick="quarantineDevice('${device.mac_address}')"><i class="fas fa-ban"></i> Quarantine</button>
+                       <button class="btn btn-sm btn-success" onclick="authorizeDevice('${device.mac_address}')"><i class="fas fa-check"></i> Authorize</button>
+                       <button class="btn btn-sm btn-danger" onclick="shutdownPort('${device.mac_address}')"><i class="fas fa-power-off"></i> Shutdown</button>`;
+        }
+
+        return `
+            <tr>
+                <td><code>${device.mac_address}</code></td>
+                <td>${device.ip_address || 'Unknown'}</td>
+                <td>${device.vendor || 'Unknown'}</td>
+                <td>${device.switch_port || 'N/A'}</td>
+                <td>${device.vlan || 'N/A'}</td>
+                <td>${statusBadge}</td>
+                <td>${typeBadge}</td>
+                <td>${formatDate(device.last_seen)}</td>
+                <td>${actions}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderAuthorizedDevices() {
+    const tbody = document.getElementById('authorizedDevicesList');
+    const authorized = allDevices.filter(d => d.is_authorized);
+    
+    if (authorized.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No authorized devices</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = authorized.map(device => `
+        <tr>
+            <td><code>${device.mac_address}</code></td>
+            <td>${device.ip_address || 'Unknown'}</td>
+            <td>${device.vendor || 'Unknown'}</td>
+            <td>${device.switch_port || 'N/A'}</td>
+            <td>${device.vlan || 'N/A'}</td>
+            <td>${formatDate(device.last_seen)}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="revokeDevice('${device.mac_address}')"><i class="fas fa-ban"></i> Revoke</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderRogueDevices() {
+    const tbody = document.getElementById('rogueDevicesList');
+    // Filter rogues and exclude multicast/broadcast addresses
+    const rogues = allDevices.filter(d => 
+        d.is_rogue == 1 && 
+        !d.mac_address.startsWith('01:00:5E:') && 
+        !d.mac_address.startsWith('33:33:') && 
+        d.mac_address !== 'FF:FF:FF:FF:FF:FF'
+    );
+    
+    if (rogues.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-success">No rogue devices detected</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = rogues.map(device => {
+        const statusBadge = device.status === 'quarantined' ? 
+            '<span class="badge bg-warning">Quarantined</span>' : 
+            '<span class="badge bg-danger">Active</span>';
+
+        const actions = device.status === 'quarantined' ?
+            `<button class="btn btn-sm btn-success" onclick="authorizeDevice('${device.mac_address}')"><i class="fas fa-check"></i> Authorize</button>
+             <button class="btn btn-sm btn-info" onclick="restoreDevice('${device.mac_address}')"><i class="fas fa-undo"></i> Restore</button>` :
+            `<button class="btn btn-sm btn-warning" onclick="quarantineDevice('${device.mac_address}')"><i class="fas fa-ban"></i> Quarantine</button>
+             <button class="btn btn-sm btn-success" onclick="authorizeDevice('${device.mac_address}')"><i class="fas fa-check"></i> Authorize</button>
+             <button class="btn btn-sm btn-danger" onclick="shutdownPort('${device.mac_address}')"><i class="fas fa-power-off"></i> Shutdown</button>`;
+
+        return `
+            <tr>
+                <td><code>${device.mac_address}</code></td>
+                <td>${device.ip_address || 'Unknown'}</td>
+                <td>${device.vendor || 'Unknown'}</td>
+                <td>${device.switch_port || 'N/A'}</td>
+                <td>${device.vlan || 'N/A'}</td>
+                <td>${statusBadge}</td>
+                <td>${formatDate(device.last_seen)}</td>
+                <td>${actions}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function quarantineDevice(mac) {
+    const reason = prompt('Enter reason for quarantine:', 'Unauthorized device');
+    if (!reason) return;
+
+    fetch(`/api/devices/${mac}/quarantine`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Device quarantined successfully!\n\nMethod: ${data.method}\n${data.message}`);
+            loadDevices();
+        } else {
+            alert(`❌ Failed to quarantine device: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Error quarantining device');
+    });
+}
+
+function authorizeDevice(mac) {
+    const deviceName = prompt('Enter device name:', '');
+    if (!deviceName) return;
+
+    const owner = prompt('Enter owner name:', '');
+    const description = prompt('Enter description (optional):', '');
+
+    fetch(`/api/devices/${mac}/authorize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            device_name: deviceName,
+            owner: owner,
+            description: description
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Device authorized successfully!');
+            loadDevices();
+        } else {
+            alert(`❌ Failed to authorize device: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Error authorizing device');
+    });
+}
+
+function shutdownPort(mac) {
+    if (!confirm(`⚠️ Shutdown port for device ${mac}?\n\nThis will completely disable the port.`)) return;
+
+    fetch(`/api/devices/${mac}/isolate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Port shutdown successfully!');
+            loadDevices();
+        } else {
+            alert(`❌ Failed to shutdown port: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Error shutting down port');
+    });
+}
+
+function restoreDevice(mac) {
+    if (!confirm(`Restore device ${mac} to original VLAN?`)) return;
+
+    fetch(`/api/devices/${mac}/restore-vlan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Device restored successfully!');
+            loadDevices();
+        } else {
+            alert(`❌ Failed to restore device: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Error restoring device');
+    });
+}
+
+function revokeDevice(mac) {
+    if (!confirm(`⚠️ Revoke authorization for device ${mac}?\n\nThis will:\n- Remove device from authorized list\n- Mark device as ROGUE\n- IMMEDIATELY quarantine to VLAN 999\n- Isolate device from production network\n\nAre you sure?`)) return;
+
+    fetch(`/api/devices/${mac}/unauthorize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ immediate_quarantine: true })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.quarantined) {
+                alert(`✅ Authorization revoked and device quarantined!\n\n${data.message}\n\nDevice is now isolated on VLAN 999.`);
+            } else {
+                alert(`✅ Authorization revoked!\n\n${data.message}`);
+            }
+            loadDevices();
+        } else {
+            alert(`❌ Failed to revoke authorization: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Error revoking authorization');
+    });
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'Never';
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+
+// Load devices on page load
+loadDevices();
+
+// Refresh every 30 seconds
+setInterval(loadDevices, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Quarantine - Rogue Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-ban"></i> Quarantined Devices</h2>
+        <p class="text-muted">Devices that have been isolated to quarantine VLAN or have ports shut down</p>
+        <hr>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <i class="fas fa-info-circle"></i> <strong>About Quarantine:</strong>
+            Quarantined devices are isolated from the production network. They are either moved to a separate VLAN or have their ports disabled.
+            Review each device and decide whether to authorize it or keep it quarantined.
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-ban"></i> Quarantined Devices</h5>
+                <h2 class="card-text">{{ quarantined_devices|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-network-wired"></i> VLAN Quarantine</h5>
+                <h2 class="card-text">{{ quarantined_devices|selectattr('vlan', 'defined')|selectattr('vlan', 'gt', 0)|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-plug"></i> Port Shutdown</h5>
+                <h2 class="card-text">{{ quarantined_devices|selectattr('vlan', 'equalto', 0)|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quarantined Devices Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Quarantined Devices List</h5>
+            </div>
+            <div class="card-body">
+                {% if quarantined_devices %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>MAC Address</th>
+                                <th>IP Address</th>
+                                <th>Hostname</th>
+                                <th>Vendor</th>
+                                <th>Switch Port</th>
+                                <th>Current VLAN</th>
+                                <th>Original VLAN</th>
+                                <th>Quarantine Method</th>
+                                <th>Last Seen</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for device in quarantined_devices %}
+                            <tr>
+                                <td><code>{{ device.mac_address }}</code></td>
+                                <td>{{ device.ip_address or 'Unknown' }}</td>
+                                <td>{{ device.hostname or 'Unknown' }}</td>
+                                <td>{{ device.vendor or 'Unknown' }}</td>
+                                <td><span class="badge bg-secondary">{{ device.switch_port }}</span></td>
+                                <td>
+                                    {% if device.vlan and device.vlan > 0 %}
+                                        <span class="badge bg-warning">VLAN {{ device.vlan }}</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Port Down</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if device.original_vlan %}
+                                        <span class="badge bg-info">VLAN {{ device.original_vlan }}</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if device.vlan and device.vlan > 0 %}
+                                        <span class="badge bg-warning"><i class="fas fa-network-wired"></i> VLAN Isolation</span>
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="fas fa-plug"></i> Port Shutdown</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ device.last_seen|datetime }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-success" onclick="authorizeDevice('{{ device.mac_address }}')" title="Authorize & Restore">
+                                            <i class="fas fa-check"></i> Authorize
+                                        </button>
+                                        <button class="btn btn-info" onclick="restoreDevice('{{ device.mac_address }}')" title="Restore to Original VLAN">
+                                            <i class="fas fa-undo"></i> Restore
+                                        </button>
+                                        <button class="btn btn-danger" onclick="deleteDevice('{{ device.mac_address }}')" title="Remove from Database">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-success text-center">
+                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                    <h4>No Quarantined Devices</h4>
+                    <p class="mb-0">All devices are either authorized or have been removed from quarantine.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions -->
+{% if quarantined_devices %}
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-tasks"></i> Bulk Actions</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-warning" onclick="restoreAllQuarantined()">
+                    <i class="fas fa-undo"></i> Restore All to Original VLANs
+                </button>
+                <button class="btn btn-danger" onclick="clearAllQuarantined()">
+                    <i class="fas fa-trash-alt"></i> Clear All Quarantined Devices
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function authorizeDevice(macAddress) {
+        const deviceName = prompt('Enter device name:');
+        if (!deviceName) return;
+        
+        const deviceType = prompt('Enter device type (e.g., Computer, Printer, Phone):') || 'Unknown';
+        const owner = prompt('Enter owner name:') || 'Unknown';
+        const department = prompt('Enter department:') || 'IT';
+        const notes = prompt('Enter notes (optional):') || '';
+        
+        fetch(`/api/devices/${macAddress}/authorize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                device_name: deviceName,
+                device_type: deviceType,
+                owner: owner,
+                department: department,
+                notes: notes
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Device authorized and restored successfully!');
+                location.reload();
+            } else {
+                alert('❌ Failed to authorize device: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Error: ' + error);
+        });
+    }
+    
+    function restoreDevice(macAddress) {
+        if (!confirm('Restore this device to its original VLAN without authorizing it?')) return;
+        
+        fetch(`/api/devices/${macAddress}/restore-vlan`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Device restored to original VLAN!');
+                location.reload();
+            } else {
+                alert('❌ Failed to restore device: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Error: ' + error);
+        });
+    }
+    
+    function deleteDevice(macAddress) {
+        if (!confirm('⚠️ Remove this device from the database?\n\nThis will delete all records of this device.')) return;
+        
+        fetch(`/api/devices/${macAddress}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Device removed from database!');
+                location.reload();
+            } else {
+                alert('❌ Failed to remove device: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Error: ' + error);
+        });
+    }
+    
+    function restoreAllQuarantined() {
+        if (!confirm('⚠️ Restore ALL quarantined devices to their original VLANs?\n\nThis will not authorize them.')) return;
+        
+        fetch('/api/quarantine/restore-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✅ ${data.count} devices restored!`);
+                location.reload();
+            } else {
+                alert('❌ Failed: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Error: ' + error);
+        });
+    }
+    
+    function clearAllQuarantined() {
+        const confirm1 = confirm('⚠️ WARNING: Remove ALL quarantined devices from database?\n\nThis action CANNOT be undone!');
+        if (!confirm1) return;
+        
+        const confirm2 = prompt('Type "DELETE" to confirm:');
+        if (confirm2 !== 'DELETE') {
+            alert('Action cancelled.');
+            return;
+        }
+        
+        fetch('/api/quarantine/clear-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✅ ${data.count} devices removed!`);
+                location.reload();
+            } else {
+                alert('❌ Failed: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Error: ' + error);
+        });
+    }
+</script>
+{% endblock %}

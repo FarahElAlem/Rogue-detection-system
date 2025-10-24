@@ -1,0 +1,17 @@
+{
+  "switch_ip": "192.168.1.2",
+  "switch_username": "admin",
+  "switch_password": "admin123",
+  "switch_device_type": "cisco_ios",
+  "network_range": "192.168.1.0/24",
+  "web_host": "0.0.0.0",
+  "web_port": 5000,
+  "scan_interval_seconds": 30,
+  "auto_isolate_rogues": false,
+  "send_alerts": true,
+  "database_path": "rogue_monitor.db",
+  "authorized_devices_file": "authorized_devices.json",
+  "log_file": "rogue_detection.log",
+  "log_level": "INFO"
+}
+

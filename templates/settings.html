@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Rogue Detection System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-cog"></i> System Settings</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form id="settingsForm">
+                    <h6 class="text-primary">Network Settings</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="switchIp" class="form-label">Switch IP Address</label>
+                            <input type="text" class="form-control" id="switchIp" value="{{ config.SWITCH_IP }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="switchUsername" class="form-label">Switch Username</label>
+                            <input type="text" class="form-control" id="switchUsername" value="{{ config.SWITCH_USERNAME }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="networkRange" class="form-label">Network Range (CIDR)</label>
+                        <input type="text" class="form-control" id="networkRange" value="{{ config.NETWORK_RANGE }}">
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="text-primary">Monitoring Settings</h6>
+                    <div class="mb-3">
+                        <label for="scanInterval" class="form-label">Scan Interval (seconds)</label>
+                        <input type="number" class="form-control" id="scanInterval" value="{{ config.SCAN_INTERVAL_SECONDS }}">
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="autoIsolate" {{ 'checked' if config.AUTO_ISOLATE_ROGUES else '' }}>
+                        <label class="form-check-label" for="autoIsolate">
+                            <strong>Auto-Isolate Rogue Devices</strong>
+                            <br>
+                            <small class="text-muted">Automatically shutdown ports when rogue devices are detected</small>
+                            <br>
+                            <small class="text-warning">⚠️ Enable only after authorizing your legitimate devices!</small>
+                        </label>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="text-primary">VLAN Quarantine Settings</h6>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="enableVlanQuarantine" {{ 'checked' if config.ENABLE_VLAN_QUARANTINE else '' }}>
+                        <label class="form-check-label" for="enableVlanQuarantine">
+                            <strong>Enable VLAN-Based Quarantine</strong>
+                            <br>
+                            <small class="text-muted">Move quarantined devices to isolated VLAN instead of shutting down port</small>
+                            <br>
+                            <small class="text-info">ℹ️ Recommended: Allows monitoring quarantined devices while isolating them</small>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="autoQuarantineRogues" {{ 'checked' if config.AUTO_QUARANTINE_ROGUES else '' }}>
+                        <label class="form-check-label" for="autoQuarantineRogues">
+                            <strong>Auto-Quarantine All Rogue Devices</strong>
+                            <br>
+                            <small class="text-muted">Automatically move all unauthorized devices to quarantine VLAN</small>
+                            <br>
+                            <small class="text-success">✅ Recommended: Only authorized devices get production network access</small>
+                        </label>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="quarantineVlan" class="form-label">Quarantine VLAN ID</label>
+                            <input type="number" class="form-control" id="quarantineVlan" value="{{ config.QUARANTINE_VLAN }}" min="1" max="4094">
+                            <small class="text-muted">VLAN for isolated/quarantined devices</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="authorizedVlan" class="form-label">Default Authorized VLAN</label>
+                            <input type="number" class="form-control" id="authorizedVlan" value="{{ config.DEFAULT_AUTHORIZED_VLAN }}" min="1" max="4094">
+                            <small class="text-muted">Default VLAN for authorized devices</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <button type="button" class="btn btn-primary" onclick="saveSettings()">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="location.reload()">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">System Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Monitoring Status:</strong>
+                    <br>
+                    <span class="badge bg-success" id="monitoringStatus">
+                        <i class="fas fa-circle"></i> Running
+                    </span>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Database:</strong>
+                    <br>
+                    <code>{{ config.DATABASE_PATH }}</code>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Web Port:</strong>
+                    <br>
+                    <code>{{ config.WEB_PORT }}</code>
+                </div>
+                
+                <hr>
+                
+                <button class="btn btn-success w-100 mb-2" onclick="startMonitoring()">
+                    <i class="fas fa-play"></i> Start Monitoring
+                </button>
+                <button class="btn btn-warning w-100 mb-2" onclick="stopMonitoring()">
+                    <i class="fas fa-stop"></i> Stop Monitoring
+                </button>
+                <button class="btn btn-primary w-100 mb-2" onclick="triggerScan()">
+                    <i class="fas fa-sync"></i> Manual Scan
+                </button>
+                
+                <hr>
+                
+                <h6 class="text-danger mb-2">Danger Zone</h6>
+                <button class="btn btn-danger w-100 mb-2" onclick="resetDatabase(true)">
+                    <i class="fas fa-trash-restore"></i> Reset DB (Keep Authorized)
+                </button>
+                <button class="btn btn-outline-danger w-100" onclick="resetDatabase(false)">
+                    <i class="fas fa-trash"></i> Reset DB (Clear All)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Notification Settings -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-envelope"></i> Email Notification Settings</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Configure email alerts for rogue device detection</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">General Settings</h6>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="enableEmailAlerts" {{ 'checked' if config.ENABLE_EMAIL_ALERTS else '' }}>
+                            <label class="form-check-label" for="enableEmailAlerts">
+                                <strong>Enable Email Alerts</strong>
+                                <small class="d-block text-muted">Send email notifications when rogue devices are detected</small>
+                            </label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="emailSubjectPrefix" class="form-label">Email Subject Prefix</label>
+                            <input type="text" class="form-control" id="emailSubjectPrefix" value="{{ config.EMAIL_SUBJECT_PREFIX }}" placeholder="[ROGUE ALERT]">
+                            <small class="text-muted">Prefix added to all alert email subjects</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="emailTo" class="form-label">Recipient Email(s) *</label>
+                            <input type="text" class="form-control" id="emailTo" value="{{ config.EMAIL_TO|join(', ') if config.EMAIL_TO else '' }}" placeholder="admin@example.com, security@example.com">
+                            <small class="text-muted">Comma-separated list of email addresses to receive alerts</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="text-primary">SMTP Server Settings</h6>
+                        
+                        <div class="mb-3">
+                            <label for="smtpServer" class="form-label">SMTP Server *</label>
+                            <input type="text" class="form-control" id="smtpServer" value="{{ config.SMTP_SERVER }}" placeholder="smtp.gmail.com">
+                            <small class="text-muted">SMTP server hostname</small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="smtpPort" class="form-label">SMTP Port *</label>
+                                    <input type="number" class="form-control" id="smtpPort" value="{{ config.SMTP_PORT }}" placeholder="587">
+                                    <small class="text-muted">Usually 587 (TLS) or 465 (SSL)</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="smtpUseTls" {{ 'checked' if config.SMTP_USE_TLS else '' }}>
+                                    <label class="form-check-label" for="smtpUseTls">
+                                        Use TLS
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="smtpUsername" class="form-label">SMTP Username *</label>
+                            <input type="text" class="form-control" id="smtpUsername" value="{{ config.SMTP_USERNAME }}" placeholder="your-email@example.com">
+                            <small class="text-muted">Usually your email address</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="smtpPassword" class="form-label">SMTP Password *</label>
+                            <input type="password" class="form-control" id="smtpPassword" value="{{ config.SMTP_PASSWORD }}" placeholder="••••••••">
+                            <small class="text-muted">For Gmail, use an app-specific password</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="emailFrom" class="form-label">From Email Address *</label>
+                            <input type="email" class="form-control" id="emailFrom" value="{{ config.EMAIL_FROM }}" placeholder="rogue-alert@example.com">
+                            <small class="text-muted">Sender email address (usually same as SMTP username)</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Gmail Users:</strong>
+                    To use Gmail SMTP, you need to generate an <a href="https://support.google.com/accounts/answer/185833" target="_blank">App Password</a> in your Google Account settings.
+                    Don't use your regular Gmail password.
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary" onclick="saveEmailSettings()">
+                        <i class="fas fa-save"></i> Save Email Settings
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="testEmail()">
+                        <i class="fas fa-paper-plane"></i> Send Test Email
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="location.reload()">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function saveSettings() {
+        const settings = {
+            switch_ip: document.getElementById('switchIp').value,
+            switch_username: document.getElementById('switchUsername').value,
+            network_range: document.getElementById('networkRange').value,
+            scan_interval_seconds: parseInt(document.getElementById('scanInterval').value),
+            auto_isolate_rogues: document.getElementById('autoIsolate').checked,
+            enable_vlan_quarantine: document.getElementById('enableVlanQuarantine').checked,
+            auto_quarantine_rogues: document.getElementById('autoQuarantineRogues').checked,
+            quarantine_vlan: parseInt(document.getElementById('quarantineVlan').value),
+            default_authorized_vlan: parseInt(document.getElementById('authorizedVlan').value)
+        };
+        
+        fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Settings saved successfully!');
+            } else {
+                alert('Error saving settings');
+            }
+        });
+    }
+    
+    function startMonitoring() {
+        fetch('/api/monitoring/start', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                updateStatus();
+            });
+    }
+    
+    function stopMonitoring() {
+        fetch('/api/monitoring/stop', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                updateStatus();
+            });
+    }
+    
+    function updateStatus() {
+        fetch('/api/monitoring/status')
+            .then(response => response.json())
+            .then(data => {
+                const status = document.getElementById('monitoringStatus');
+                if (data.is_running) {
+                    status.innerHTML = '<i class="fas fa-circle"></i> Running';
+                    status.className = 'badge bg-success';
+                } else {
+                    status.innerHTML = '<i class="fas fa-circle"></i> Stopped';
+                    status.className = 'badge bg-danger';
+                }
+            });
+    }
+    
+    // Email Settings Functions
+    function saveEmailSettings() {
+        const settings = {
+            enable_email_alerts: document.getElementById('enableEmailAlerts').checked,
+            smtp_server: document.getElementById('smtpServer').value,
+            smtp_port: parseInt(document.getElementById('smtpPort').value),
+            smtp_use_tls: document.getElementById('smtpUseTls').checked,
+            smtp_username: document.getElementById('smtpUsername').value,
+            smtp_password: document.getElementById('smtpPassword').value,
+            email_from: document.getElementById('emailFrom').value,
+            email_to: document.getElementById('emailTo').value,
+            email_subject_prefix: document.getElementById('emailSubjectPrefix').value
+        };
+        
+        console.log('Saving email settings:', settings);
+        
+        fetch('/api/settings/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        })
+        .then(response => {
+            console.log('Save response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Save response data:', data);
+            if (data.success) {
+                alert('✅ ' + data.message);
+            } else {
+                alert('❌ ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Save error:', error);
+            alert('❌ Failed to save settings: ' + error);
+        });
+    }
+    
+    function testEmail() {
+        // Get the button element properly
+        const button = document.querySelector('button[onclick="testEmail()"]');
+        const originalText = button.innerHTML;
+        
+        // Show loading message
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        button.disabled = true;
+        
+        const settings = {
+            smtp_server: document.getElementById('smtpServer').value,
+            smtp_port: parseInt(document.getElementById('smtpPort').value),
+            smtp_use_tls: document.getElementById('smtpUseTls').checked,
+            smtp_username: document.getElementById('smtpUsername').value,
+            smtp_password: document.getElementById('smtpPassword').value,
+            email_from: document.getElementById('emailFrom').value,
+            email_to: document.getElementById('emailTo').value
+        };
+        
+        console.log('Testing email with settings:', settings);
+        
+        fetch('/api/email/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        })
+        .then(response => {
+            console.log('Email test response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Email test response:', data);
+            console.log('Response type:', typeof data);
+            console.log('Response keys:', Object.keys(data));
+            
+            if (data && data.success) {
+                alert('✅ ' + data.message);
+            } else if (data && data.message) {
+                alert('❌ ' + data.message);
+            } else {
+                alert('❌ Unexpected response format: ' + JSON.stringify(data));
+            }
+        })
+        .catch(error => {
+            console.error('Email test error:', error);
+            alert('❌ Failed to send test email: ' + error.message);
+        })
+        .finally(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+    }
+    
+    function resetDatabase(keepAuthorized) {
+        const action = keepAuthorized ? 'reset the database (keeping authorized devices)' : 'COMPLETELY RESET THE DATABASE (including authorized devices)';
+        const confirmMsg = `⚠️ WARNING: Are you sure you want to ${action}?\n\nThis will delete:\n` +
+            `- All detected devices\n` +
+            `- All security events\n` +
+            `- All port status records\n` +
+            (keepAuthorized ? '' : '- All authorized devices list\n') +
+            `\nThis action CANNOT be undone!\n\nType 'RESET' to confirm:`;
+        
+        const userInput = prompt(confirmMsg);
+        
+        if (userInput === 'RESET') {
+            fetch('/api/database/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keep_authorized: keepAuthorized })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message + '\n\nPage will reload...');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('❌ Failed to reset database: ' + error);
+            });
+        } else if (userInput !== null) {
+            alert('Reset cancelled. You must type "RESET" to confirm.');
+        }
+    }
+    
+    // Update status on load
+    updateStatus();
+    setInterval(updateStatus, 10000);
+</script>
+{% endblock %}
+
