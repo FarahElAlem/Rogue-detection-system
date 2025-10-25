@@ -168,6 +168,7 @@ rogue_monitor.sqlite
 # ============================================
 # Configuration files with sensitive data
 config.json
+config.py
 config.ini
 config.cfg
 settings.json
@@ -496,3 +497,4 @@ analytics/
 !CONTRIBUTING.txt
 !contributing.txt
 !CONTRIBUTING.md
+
