@@ -309,20 +309,11 @@ Body: {"port": "Et0/0", "vlan_id": 10}
 
 This project is licensed under the MIT License.
 
-## 👥 Authors
-
-- Your Name - Initial work
-
 ## 🙏 Acknowledgments
 
 - Netmiko - Network device automation
 - Flask - Web framework
 - Bootstrap - UI framework
-
-## 📞 Support
-
-- **Issues:** [GitHub Issues](https://github.com/yourusername/rogue-detection-system/issues)
-- **Email:** support@example.com
 
 ## 🗺️ Roadmap
 
