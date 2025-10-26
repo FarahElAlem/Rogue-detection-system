@@ -55,10 +55,13 @@ pip install -r requirements.txt
 ```bash
 # Copy example config
 cp config.json.example config.json
+cp config.py.example config.py
 
 # Edit with your switch details
 notepad config.json  # Windows
 nano config.json     # Linux
+notepad config.py  # Windows
+nano config.py     # Linux
 ```
 
 6. **Run the application**
