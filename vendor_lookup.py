@@ -21,7 +21,11 @@ class VendorLookup:
         
         # EVE-NG / Network Simulation
         'AA:BB:CC': 'EVE-NG VPC',
-        '50:00:00': 'EVE-NG',
+        '50:00:00': 'EVE-NG Device',
+        '00:50:00': 'EVE-NG Device',
+        '50:01:00': 'EVE-NG Device',
+        '50:02:00': 'EVE-NG Device',
+        '50:03:00': 'EVE-NG Device',
         
         # Major Network Equipment Vendors
         '00:00:0C': 'Cisco Systems',
