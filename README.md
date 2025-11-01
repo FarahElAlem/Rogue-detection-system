@@ -318,14 +318,6 @@ This project is licensed under the MIT License.
 - Flask - Web framework
 - Bootstrap - UI framework
 
-## 🗺️ Roadmap
-
-- [ ] Multi-switch support
-- [ ] Advanced threat detection
-- [ ] Mobile app
-- [ ] LDAP/Active Directory integration
-- [ ] Custom alerting rules
-
 ---
 
 **Made with ❤️ for Network Security**
