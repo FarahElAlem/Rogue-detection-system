@@ -320,6 +320,6 @@ This project is licensed under the MIT License.
 
 ---
 
-**Made with ❤️ for Network Security**
+**Made with ❤️ for Network Security** in collaboration with my wonderful team , thanks to Anass EL OUALI & Khaoula EZZYDANI 
 
 *Last Updated: October 2025*
